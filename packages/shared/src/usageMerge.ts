@@ -8,6 +8,7 @@
  */
 import type {
   EnvironmentId,
+  ServerProvider,
   UsageBucket,
   UsageProviderKind,
   UsageSourceFingerprint,
@@ -18,6 +19,21 @@ export interface EnvironmentUsage {
   readonly environmentId: EnvironmentId;
   readonly label: string;
   readonly summary: UsageSummary;
+  /** Provider kinds currently enabled on this environment. */
+  readonly providersInScope: readonly UsageProviderKind[];
+}
+
+/** Maps the server's instance-level provider snapshots to usage provider kinds. */
+export function enabledUsageProviders(
+  providers: readonly Pick<ServerProvider, "driver" | "enabled">[],
+): readonly UsageProviderKind[] {
+  const enabled = new Set<UsageProviderKind>();
+  for (const provider of providers) {
+    if (!provider.enabled) continue;
+    if (provider.driver === "claudeAgent") enabled.add("claude");
+    if (provider.driver === "codex") enabled.add("codex");
+  }
+  return [...enabled];
 }
 
 export interface ProviderTotals {
@@ -71,7 +87,7 @@ export interface MergedUsage {
   readonly totalTokens: number;
   readonly records: number;
   readonly sessions: number;
-  /** Providers included by at least one current environment's usage scan. */
+  /** Providers enabled on at least one current environment. */
   readonly providersInScope: readonly UsageProviderKind[];
   readonly providers: readonly ProviderTotals[];
   readonly models: readonly ModelTotals[];
@@ -121,6 +137,7 @@ function claimSources(environments: readonly EnvironmentUsage[]): {
 
   for (const environment of ordered) {
     for (const source of environment.summary.sources) {
+      if (!environment.providersInScope.includes(source.fingerprint.provider)) continue;
       if (source.status === "missing") continue;
       const key = fingerprintKey(source.fingerprint);
       if (ownerByFingerprint.has(key)) {
@@ -145,6 +162,7 @@ function ownedContribution(
   const ownedProviders = new Set<UsageProviderKind>();
   const sessionsByProvider = new Map<UsageProviderKind, number>();
   for (const source of environment.summary.sources) {
+    if (!environment.providersInScope.includes(source.fingerprint.provider)) continue;
     if (source.status === "missing") continue;
     const key = fingerprintKey(source.fingerprint);
     if (ownerByFingerprint.get(key) === environment.environmentId) {
@@ -226,9 +244,7 @@ export function mergeUsage(
   const { ownerByFingerprint, duplicates } = claimSources(current);
   const providersInScope = new Set<UsageProviderKind>();
   for (const environment of current) {
-    for (const source of environment.summary.sources) {
-      providersInScope.add(source.fingerprint.provider);
-    }
+    for (const provider of environment.providersInScope) providersInScope.add(provider);
   }
 
   let costUsd = 0;
