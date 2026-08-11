@@ -262,6 +262,7 @@ describe("mergeUsage", () => {
     expect(merged.costUsd).toBe(0);
     expect(merged.daily).toHaveLength(0);
     expect(merged.hourly).toHaveLength(0);
+    expect(merged.providersInScope).toEqual([]);
   });
 
   it("omits providers with no sessions or usage", () => {
@@ -311,5 +312,38 @@ describe("mergeUsage", () => {
     ]);
     expect(merged.daily).toHaveLength(1);
     expect(merged.daily[0]?.costUsd).toBe(10);
+  });
+
+  it("keeps providers in scope even when they have no usage", () => {
+    const merged = mergeUsage(
+      [
+        environment(
+          "env-a",
+          summary([], [{ provider: "codex", hostId: "mac", homePath: "/a/.codex" }]),
+        ),
+      ],
+      USAGE_CONTRACT_VERSION,
+    );
+
+    expect(merged.providersInScope).toEqual(["codex"]);
+    expect(merged.providers).toEqual([]);
+  });
+
+  it("unions providers in scope across current environments", () => {
+    const merged = mergeUsage(
+      [
+        environment(
+          "env-a",
+          summary([], [{ provider: "codex", hostId: "mac", homePath: "/a/.codex" }]),
+        ),
+        environment(
+          "env-b",
+          summary([], [{ provider: "claude", hostId: "linux", homePath: "/b/.claude" }]),
+        ),
+      ],
+      USAGE_CONTRACT_VERSION,
+    );
+
+    expect([...merged.providersInScope].sort()).toEqual(["claude", "codex"]);
   });
 });

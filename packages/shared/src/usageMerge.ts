@@ -71,6 +71,8 @@ export interface MergedUsage {
   readonly totalTokens: number;
   readonly records: number;
   readonly sessions: number;
+  /** Providers included by at least one current environment's usage scan. */
+  readonly providersInScope: readonly UsageProviderKind[];
   readonly providers: readonly ProviderTotals[];
   readonly models: readonly ModelTotals[];
   readonly daily: readonly DailyTotals[];
@@ -182,6 +184,7 @@ const EMPTY_MERGED: MergedUsage = {
   totalTokens: 0,
   records: 0,
   sessions: 0,
+  providersInScope: [],
   providers: [],
   models: [],
   daily: [],
@@ -221,6 +224,12 @@ export function mergeUsage(
   }
 
   const { ownerByFingerprint, duplicates } = claimSources(current);
+  const providersInScope = new Set<UsageProviderKind>();
+  for (const environment of current) {
+    for (const source of environment.summary.sources) {
+      providersInScope.add(source.fingerprint.provider);
+    }
+  }
 
   let costUsd = 0;
   let uncachedInputTokens = 0;
@@ -399,6 +408,7 @@ export function mergeUsage(
     totalTokens,
     records,
     sessions,
+    providersInScope: [...providersInScope],
     providers,
     models,
     daily,

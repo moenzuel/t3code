@@ -74,6 +74,10 @@ export function UsagePage() {
     () => (isPast24Hours ? merged.hourly : merged.daily).toReversed(),
     [isPast24Hours, merged.daily, merged.hourly],
   );
+  const visibleProviders = useMemo(
+    () => PROVIDER_ORDER.filter((provider) => merged.providersInScope.includes(provider)),
+    [merged.providersInScope],
+  );
 
   const selectWindow = (days: number) => {
     setWindowSelection({
@@ -225,7 +229,7 @@ export function UsagePage() {
                       </span>
                     </div>
 
-                    {PROVIDER_ORDER.map((provider) => {
+                    {visibleProviders.map((provider) => {
                       const totals = merged.providers.find((entry) => entry.provider === provider);
                       const share =
                         metric === "cost" ? (totals?.costShare ?? 0) : (totals?.tokenShare ?? 0);
@@ -280,6 +284,7 @@ export function UsagePage() {
                       daily={merged.daily}
                       hours={hours}
                       hourly={merged.hourly}
+                      providers={visibleProviders}
                       metric={metric}
                       referenceTime={window.untilTime}
                       resolution={isPast24Hours ? "hour" : "day"}
@@ -378,7 +383,7 @@ export function UsagePage() {
                       <thead>
                         <tr className="border-b border-border text-left text-xs text-muted-foreground">
                           <th className="py-2 font-normal">{isPast24Hours ? "Hour" : "Day"}</th>
-                          {PROVIDER_ORDER.map((provider) => (
+                          {visibleProviders.map((provider) => (
                             <th key={provider} className="py-2 text-right font-normal">
                               {PROVIDER_PRESENTATION[provider].label}
                             </th>
@@ -390,7 +395,10 @@ export function UsagePage() {
                       <tbody>
                         {breakdownPeriods.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                            <td
+                              colSpan={visibleProviders.length + 3}
+                              className="py-6 text-center text-muted-foreground"
+                            >
                               No activity in this window.
                             </td>
                           </tr>
@@ -405,7 +413,7 @@ export function UsagePage() {
                                   ? formatHourShort(period.hourStart, window.timeZone)
                                   : formatDayShort(period.day)}
                               </td>
-                              {PROVIDER_ORDER.map((provider) => (
+                              {visibleProviders.map((provider) => (
                                 <td
                                   key={provider}
                                   className="py-2 text-right text-muted-foreground tabular-nums"
@@ -571,15 +579,7 @@ function UsageSkeleton() {
           {PROVIDER_ORDER.map((provider) => (
             <div key={provider} className="flex flex-col gap-1">
               <div className="flex min-h-5 items-center justify-between gap-4">
-                <span className="flex items-center gap-2">
-                  <span
-                    aria-hidden
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: PROVIDER_PRESENTATION[provider].color }}
-                  />
-                  <ProviderMark provider={provider} className="size-4" />
-                  <div className="h-3.5 w-20 rounded-sm bg-muted" />
-                </span>
+                <div className="h-3.5 w-24 rounded-sm bg-muted" />
                 <div className="h-3.5 w-14 rounded-sm bg-muted" />
               </div>
               <div className="h-4 w-36 rounded-sm bg-muted" />

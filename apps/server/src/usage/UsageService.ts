@@ -39,6 +39,7 @@ import { resolveClaudeHomePath } from "../provider/Drivers/ClaudeHome.ts";
 import { resolveCodexHomeLayout } from "../provider/Drivers/CodexHomeLayout.ts";
 import { UsageAggregator } from "./usageAggregation.ts";
 import { parseRateTable, type RateTable } from "./usagePricing.ts";
+import { selectEnabledUsageProviders } from "./usageProviderSelection.ts";
 import {
   listTranscriptFiles,
   readDirectoryVolumeId,
@@ -215,14 +216,21 @@ export const make = Effect.gen(function* () {
       ),
     );
 
-    const claudeHome = yield* resolveClaudeHomePath(settings.providers.claudeAgent);
-    const claudeDir = yield* resolveClaudeTranscriptDir(claudeHome);
-    const codexLayout = yield* resolveCodexHomeLayout(settings.providers.codex);
+    const enabledProviders = selectEnabledUsageProviders(settings);
+    const dirs: Array<{ readonly provider: UsageProviderKind; readonly dir: string }> = [];
 
-    return [
-      { provider: "claude" as const, dir: claudeDir },
-      { provider: "codex" as const, dir: path.join(codexLayout.sharedHomePath, "sessions") },
-    ];
+    if (enabledProviders.has("claude")) {
+      const claudeHome = yield* resolveClaudeHomePath(settings.providers.claudeAgent);
+      const claudeDir = yield* resolveClaudeTranscriptDir(claudeHome);
+      dirs.push({ provider: "claude", dir: claudeDir });
+    }
+
+    if (enabledProviders.has("codex")) {
+      const codexLayout = yield* resolveCodexHomeLayout(settings.providers.codex);
+      dirs.push({ provider: "codex", dir: path.join(codexLayout.sharedHomePath, "sessions") });
+    }
+
+    return dirs;
   });
 
   /**
