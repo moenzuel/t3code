@@ -6,8 +6,8 @@ savings, provider shares, and model breakdowns. Subscription billing is separate
 cost shown here.
 
 T3 Code includes Claude Code and Codex data only while the corresponding provider is enabled on an
-environment. If a provider is enabled on any connected environment, its usage is included in the
-combined view. Disabling a provider hides its historical transcript usage without deleting the
+environment. The combined view aggregates each environment's usage only for providers enabled on
+that environment. Disabling a provider hides its historical transcript usage without deleting the
 provider's session files.
 
 Use **Past 24h** for an hourly chart covering the exact rolling 24-hour period. The **7 days**,
