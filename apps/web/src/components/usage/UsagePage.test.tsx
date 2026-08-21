@@ -1,4 +1,4 @@
-import { USAGE_CONTRACT_VERSION } from "@t3tools/contracts";
+import { USAGE_CONTRACT_VERSION, type UsageProviderKind } from "@t3tools/contracts";
 import { mergeUsage } from "@t3tools/shared/usageMerge";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
@@ -69,6 +69,30 @@ const providerTotals = (codex: number, claude: number) =>
     ["claude", { costUsd: claude, totalTokens: claude * 1_000 }],
   ] as const);
 
+function renderPendingSkeleton(
+  providersInScope: readonly UsageProviderKind[],
+  isProviderScopePending = false,
+) {
+  testState.useUsage.mockReturnValue({
+    merged: mergeUsage([], USAGE_CONTRACT_VERSION),
+    environments: [
+      {
+        environmentId: "local",
+        label: "Local",
+        isPending: true,
+        isProviderScopePending,
+        error: null,
+        summary: null,
+        providersInScope,
+      },
+    ],
+    isPending: true,
+    isPartial: false,
+    refresh: vi.fn(),
+  });
+  return renderToStaticMarkup(<UsagePage />);
+}
+
 beforeEach(() => {
   testState.useUsage.mockReturnValue({
     merged: {
@@ -106,5 +130,28 @@ describe("UsagePage hourly breakdown", () => {
     expect(body).toContain("$11.00");
     expect(body).toContain("$13.00");
     expect(body.indexOf("$11.00")).toBeLessThan(body.indexOf("$13.00"));
+  });
+});
+
+describe("UsagePage loading skeleton", () => {
+  it("matches provider rows to the known environment scope", () => {
+    const markup = renderPendingSkeleton(["claude"]);
+
+    expect(markup).toContain("background-color:orange");
+    expect(markup).not.toContain("background-color:white");
+  });
+
+  it("reserves both provider rows before environment scope arrives", () => {
+    const markup = renderPendingSkeleton([], true);
+
+    expect(markup).toContain("background-color:white");
+    expect(markup).toContain("background-color:orange");
+  });
+
+  it("renders no provider rows when the known scope is empty", () => {
+    const markup = renderPendingSkeleton([]);
+
+    expect(markup).not.toContain("background-color:white");
+    expect(markup).not.toContain("background-color:orange");
   });
 });

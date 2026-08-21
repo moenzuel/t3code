@@ -32,6 +32,7 @@ export interface EnvironmentUsageStatus {
   readonly environmentId: EnvironmentId;
   readonly label: string;
   readonly isPending: boolean;
+  readonly isProviderScopePending: boolean;
   readonly error: string | null;
   readonly summary: UsageSummary | null;
   readonly providersInScope: readonly UsageProviderKind[];
@@ -57,6 +58,7 @@ const usageByWindowAtom = Atom.family((windowKey: string) =>
         environmentId,
         label: presentation.entry.target.label,
         isPending: providers === null || result.waiting,
+        isProviderScopePending: providers === null,
         error: result._tag === "Failure" ? "This environment could not report usage." : null,
         summary: providers === null ? null : Option.getOrNull(AsyncResult.value(result)),
         providersInScope: providers === null ? [] : enabledUsageProviders(providers),

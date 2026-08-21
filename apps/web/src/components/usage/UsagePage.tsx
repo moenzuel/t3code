@@ -78,6 +78,14 @@ export function UsagePage() {
     () => PROVIDER_ORDER.filter((provider) => merged.providersInScope.includes(provider)),
     [merged.providersInScope],
   );
+  const skeletonProviders = useMemo(() => {
+    const providers = PROVIDER_ORDER.filter((provider) =>
+      environments.some((environment) => environment.providersInScope.includes(provider)),
+    );
+    return environments.some((environment) => environment.isProviderScopePending)
+      ? PROVIDER_ORDER
+      : providers;
+  }, [environments]);
 
   const selectWindow = (days: number) => {
     setWindowSelection({
@@ -204,7 +212,7 @@ export function UsagePage() {
             {settling ? (
               <>
                 {environments.length > 1 ? <UsageDeviceStrip environments={environments} /> : null}
-                <UsageSkeleton />
+                <UsageSkeleton providers={skeletonProviders} />
               </>
             ) : (
               <>
@@ -567,7 +575,7 @@ function UsageDeviceStrip({
  * Static stand-in with the loaded page's shape. No shimmer; blocks fill in
  * exactly once when the last device answers.
  */
-function UsageSkeleton() {
+function UsageSkeleton({ providers }: { readonly providers: readonly UsageProviderKind[] }) {
   return (
     <>
       <section className="grid gap-6 lg:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
@@ -576,10 +584,18 @@ function UsageSkeleton() {
             <div className="h-10 w-36 rounded-sm bg-muted" />
             <div className="h-4 w-32 rounded-sm bg-muted" />
           </div>
-          {PROVIDER_ORDER.map((provider) => (
+          {providers.map((provider) => (
             <div key={provider} className="flex flex-col gap-1">
               <div className="flex min-h-5 items-center justify-between gap-4">
-                <div className="h-3.5 w-24 rounded-sm bg-muted" />
+                <span className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: PROVIDER_PRESENTATION[provider].color }}
+                  />
+                  <ProviderMark provider={provider} className="size-4" />
+                  <div className="h-3.5 w-20 rounded-sm bg-muted" />
+                </span>
                 <div className="h-3.5 w-14 rounded-sm bg-muted" />
               </div>
               <div className="h-4 w-36 rounded-sm bg-muted" />
