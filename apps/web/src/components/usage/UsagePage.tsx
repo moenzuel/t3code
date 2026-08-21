@@ -79,10 +79,11 @@ export function UsagePage() {
     [merged.providersInScope],
   );
   const skeletonProviders = useMemo(() => {
+    const reportingEnvironments = environments.filter((environment) => environment.error === null);
     const providers = PROVIDER_ORDER.filter((provider) =>
-      environments.some((environment) => environment.providersInScope.includes(provider)),
+      reportingEnvironments.some((environment) => environment.providersInScope.includes(provider)),
     );
-    return environments.some((environment) => environment.isProviderScopePending)
+    return reportingEnvironments.some((environment) => environment.isProviderScopePending)
       ? PROVIDER_ORDER
       : providers;
   }, [environments]);

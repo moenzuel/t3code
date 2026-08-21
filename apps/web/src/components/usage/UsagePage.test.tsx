@@ -72,6 +72,7 @@ const providerTotals = (codex: number, claude: number) =>
 function renderPendingSkeleton(
   providersInScope: readonly UsageProviderKind[],
   isProviderScopePending = false,
+  failedProvidersInScope: readonly UsageProviderKind[] = [],
 ) {
   testState.useUsage.mockReturnValue({
     merged: mergeUsage([], USAGE_CONTRACT_VERSION),
@@ -85,6 +86,19 @@ function renderPendingSkeleton(
         summary: null,
         providersInScope,
       },
+      ...(failedProvidersInScope.length === 0
+        ? []
+        : [
+            {
+              environmentId: "failed",
+              label: "Failed",
+              isPending: false,
+              isProviderScopePending: false,
+              error: "This environment could not report usage.",
+              summary: null,
+              providersInScope: failedProvidersInScope,
+            },
+          ]),
     ],
     isPending: true,
     isPartial: false,
@@ -153,5 +167,12 @@ describe("UsagePage loading skeleton", () => {
 
     expect(markup).not.toContain("background-color:white");
     expect(markup).not.toContain("background-color:orange");
+  });
+
+  it("ignores provider scope from failed environments", () => {
+    const markup = renderPendingSkeleton(["claude"], false, ["codex"]);
+
+    expect(markup).toContain("background-color:orange");
+    expect(markup).not.toContain("background-color:white");
   });
 });
